@@ -25,7 +25,7 @@ func main() {
 		if err == io.EOF {
 			break
 		} else if pe, ok := err.(*csv.ParseError); ok && pe.Err == csv.ErrFieldCount {
-			// we just print the error and skip the column
+			// we just print the error and skip the record
 			log.Print(err)
 		} else if err != nil {
 			log.Fatal(err)
