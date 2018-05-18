@@ -9,33 +9,22 @@ os:
   - linux
   - osx
 
-# We will build for the latest stable build, and also try it on the latest
-# nightly just to get a heads up for any breaking changes (failures on nightly
-# won't fail the build but will at least warn us).
-matrix:
-  include:
-    - go: 1.10.x
-      script:
-        - diff -u <(echo -n) <(gofmt -d .) # Catch any gofmt errors.
-        - go build # Catch any compile errors first.
-        - go test -v -race -coverprofile=coverage.txt -covermode=atomic ./... # Run the tests.
-      after_success:
-        - bash <(curl -s https://codecov.io/bash)
-    - go: master
-      script: go test -v -race ./...
-  allow_failures:
-    - go: master
-  fast_finish: true
+go: 1.10.x
+
+script:
+  - diff -u <(echo -n) <(gofmt -d .) # Catch any gofmt errors.
+  - go build -o target/anon-$TRAVIS_OS_NAME # Catch any compile errors first.
+  - go test -v -race -coverprofile=coverage.txt -covermode=atomic ./... # Run the tests with coverage.
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
 
 # On a tag, we will publish the binary produced to the GitHub release.
 deploy:
   provider: releases
   api_key:
     secure: "ezDOGZRKLTK4kbdm3cMJg/PbJw7Jx3XwtOwhppNEE5VR7mc3gAZVae3S6zydTnDICdpPJgCBzyMej2lmfLqCi6rfYIROlZw0IOKQm+V9E01/WTACrlVCmXuoeQArb1Q0KUUqr8buEaLgrau4fay/StVfgk2tAjrF02GWk8vNu4IglahUqR5oRqkBmnZrJD5i0Y9vZRuUa0y7YWVBQMknQHxrGTS3SzCfLAAuIggigQt8AfkfC3iWDllQnH4ElIKpc1qv8dfVu2qsqHxwlWrFHHGFVSDAgX1dvgtmR38NY9j+fXiJQ7gvFJzTcyemZuB1w7HYjr7Zk0+9SB5nJV5pZDTeGXLyO547HqAGDe/d4L1uEXBtpkImopz4qekKRCeG/jcUE6iTp9ZmZOGuLpEOOInDRj4pNLyY5RwPBxC7Cfk4J2Lo6/FOdpxv0O+4FsoKkr/+cU2Zm4uf2V8L0c6OwVNbglQe/lDJBLBrR1KUc5OYM07IVSuOJRyR77EUb6BXvK/qF2t7C8s/+n93KqRMcLNTezWy2QDb7LBJ9g1PNi6alF+CU//vtHROYPlxU+QFX/rH8HMD3aIx/bEdWdM06OnzbLsYwBw4tKb1huabJVjpvWANsPwhIk5xGOGhRqywY5aJS2lcHnFl5lvfXh1Szuk8ZMLix6pzm6Qip24QizU="
-  file: anon
+  file: target/anon-$TRAVIS_OS_NAME
   skip_cleanup: true
   on:
-    # This condition makes sure there is only one release for such targets and
-    # that's generated using the stable release (not master).
-    condition: $TRAVIS_GO_VERSION =~ ^1\.10\.[0-9]+$
     tags: true
