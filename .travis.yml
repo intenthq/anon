@@ -18,7 +18,9 @@ matrix:
       script:
         - diff -u <(echo -n) <(gofmt -d .) # Catch any gofmt errors.
         - go build # Catch any compile errors first.
-        - go test -v -race ./... # Run the tests.
+        - go test -v -race -coverprofile=coverage.txt -covermode=atomic ./... # Run the tests.
+      after_success:
+        - bash <(curl -s https://codecov.io/bash)
     - go: master
       script: go test -v -race ./...
   allow_failures:
