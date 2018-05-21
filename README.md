@@ -62,7 +62,7 @@ In order to be useful, Anon needs to be told what you want to do to each column 
     {
       // Given a date, just keep the year.
       "name": "year",
-      "config": {
+      "dateConfig": {
         // Define the format of the input date here.
         "format": "YYYYmmmdd"
       }
@@ -70,7 +70,7 @@ In order to be useful, Anon needs to be told what you want to do to each column 
     {
       // Summarise a range of values.
       "name": "range",
-      "config": {
+      "rangeConfig": {
         "ranges": [
           // For example, this will take values between 0 and 100, and convert
           // them to the string "0-100". Both min and max are inclusive.

@@ -1,0 +1,26 @@
+{
+  "csv": {
+    "delimiter": ","
+  },
+  "sampling": {
+    "mod": 1,
+    "idColumn": 0
+  },
+  "actions": [
+    {
+      "name": "hash"
+    },
+    {
+      "name": "outcode"
+    },
+    {
+      "name": "year",
+      "dateConfig": {
+        "format": "20060102"
+      }
+    },
+    {
+      "name": "nothing"
+    }
+  ]
+}

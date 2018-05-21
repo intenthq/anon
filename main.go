@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/csv"
 	"flag"
+	"hash/fnv"
 	"io"
 	"log"
 	"os"
@@ -14,10 +15,13 @@ func main() {
 	outputFile := flag.String("output", "", "Output file. Default is stdout.")
 	flag.Parse()
 	log.Printf("Using configuration in file %s\n", *configFile)
-	r := initReader(flag.Arg(0))
-	w := initWriter(*outputFile)
-	//TODO create the anons array using the config provided
-	anons := []anonymisation{hash, identity, identity, outcode}
+	conf, err := loadConfig(*configFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	r := initReader(flag.Arg(0), conf.Csv)
+	w := initWriter(*outputFile, conf.Csv)
+	anons := anonymisations(&conf.Actions)
 	i := 0
 
 	for {
@@ -29,8 +33,14 @@ func main() {
 			log.Print(err)
 		} else if err != nil {
 			log.Fatal(err)
-		} else {
-			w.Write(anonymise(record, anons))
+		} else if sample(record[conf.Sampling.IDColumn], conf.Sampling) {
+			anonymised, err := anonymise(record, anons)
+			if err != nil {
+				// we just print the error and skip the record
+				log.Print(err)
+			} else {
+				w.Write(anonymised)
+			}
 			//TODO decide how often do we want to flush
 			if i%100 == 0 {
 				w.Flush()
@@ -41,12 +51,22 @@ func main() {
 	w.Flush()
 }
 
-func initReader(file string) *csv.Reader {
-	return csv.NewReader(fileOr(file, os.Stdout, os.Open))
+func sample(s string, conf SamplingConfig) bool {
+	h := fnv.New32a()
+	h.Write([]byte(s))
+	return h.Sum32()%conf.Mod == 0
 }
 
-func initWriter(file string) *csv.Writer {
-	return csv.NewWriter(fileOr(file, os.Stdin, os.Create))
+func initReader(filename string, conf CsvConfig) *csv.Reader {
+	reader := csv.NewReader(fileOr(filename, os.Stdout, os.Open))
+	reader.Comma = []rune(conf.Delimiter)[0]
+	return reader
+}
+
+func initWriter(filename string, conf CsvConfig) *csv.Writer {
+	writer := csv.NewWriter(fileOr(filename, os.Stdin, os.Create))
+	writer.Comma = []rune(conf.Delimiter)[0]
+	return writer
 }
 
 // If filename is empty, will return `def`, if it's not, will return the
@@ -62,12 +82,16 @@ func fileOr(filename string, def *os.File, action func(string) (*os.File, error)
 	return f
 }
 
-func anonymise(record []string, anons []anonymisation) []string {
+func anonymise(record []string, anons []Anonymisation) ([]string, error) {
+	var err error
 	for i := range record {
-		//TODO decide if we fail if not enough anonmisations are defined or we just skip the record
+		// TODO decide if we fail if not enough anonmisations are defined
+		// or we just skip the column (i.e. we apply identity)
 		if i < len(anons) {
-			record[i] = anons[i](record[i])
+			if record[i], err = anons[i](record[i]); err != nil {
+				return nil, err
+			}
 		}
 	}
-	return record
+	return record, nil
 }
