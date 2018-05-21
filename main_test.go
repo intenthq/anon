@@ -17,8 +17,18 @@ func stdOutOk(s string) (*os.File, error) {
 }
 
 func TestAnonymise(t *testing.T) {
-	record := []string{"1", "2", "3"}
-	actions := []anonymisation{identity, hash, identity}
-	output := []string{identity("1"), hash("2"), identity("3")}
-	assert.Equal(t, anonymise(record, actions), output, "should apply anonymisation functions to each column in the record")
+	record := []string{"a", "b", "c"}
+	actions := []Anonymisation{identity, hash, identity}
+	output := []string{"a", "e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98", "c"}
+	res, err := anonymise(record, actions)
+	assert.Nil(t, err)
+	assert.Equal(t, output, res, "should apply anonymisation functions to each column in the record")
+}
+
+func TestSample(t *testing.T) {
+	conf := SamplingConfig{
+		Mod: 2,
+	}
+	assert.True(t, sample("a", conf))
+	assert.False(t, sample("b", conf))
 }
