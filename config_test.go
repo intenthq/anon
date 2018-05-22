@@ -60,7 +60,7 @@ func TestLoadConfig(t *testing.T) {
 					},
 				},
 				ActionConfig{
-					Name: "range",
+					Name: "ranges",
 					RangeConfig: []RangeConfig{
 						RangeConfig{
 							Gte:    &gte,
