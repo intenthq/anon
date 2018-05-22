@@ -18,6 +18,8 @@ func main() {
 	conf, err := loadConfig(*configFile)
 	if err != nil {
 		log.Fatal(err)
+	} else if err = conf.validate(); err != nil {
+		log.Fatal(err)
 	}
 	r := initReader(flag.Arg(0), conf.Csv)
 	w := initWriter(*outputFile, conf.Csv)

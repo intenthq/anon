@@ -17,10 +17,20 @@ type DateConfig struct {
 	Format string
 }
 
+// RangeConfig stores configuration to define a range of values
+type RangeConfig struct {
+	Gt     *float64
+	Gte    *float64
+	Lt     *float64
+	Lte    *float64
+	Output *string
+}
+
 // ActionConfig stores the config of an anonymisation action
 type ActionConfig struct {
-	Name       string
-	DateConfig DateConfig
+	Name        string
+	DateConfig  DateConfig
+	RangeConfig []RangeConfig
 }
 
 // Returns an array of anonymisations according to the config
