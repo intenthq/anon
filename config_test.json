@@ -1,10 +1,10 @@
 {
   "csv": {
-    "delimiter": ","
+    "delimiter": "|"
   },
   "sampling": {
-    "mod": 1,
-    "idColumn": 0
+    "mod": 77,
+    "idColumn": 84
   },
   "actions": [
     {
@@ -18,6 +18,16 @@
       "dateConfig": {
         "format": "20060102"
       }
+    },
+    {
+      "name": "range",
+      "rangeConfig": [
+        {
+          "gte": 0,
+          "lt": 100,
+          "output": "0-100"
+        }
+      ]
     },
     {
       "name": "nothing"

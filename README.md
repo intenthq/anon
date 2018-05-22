@@ -73,11 +73,14 @@ In order to be useful, Anon needs to be told what you want to do to each column 
       "rangeConfig": {
         "ranges": [
           // For example, this will take values between 0 and 100, and convert
-          // them to the string "0-100". Both min and max are inclusive.
+          // them to the string "0-100".
+          // You can use one of (gt, gte) and (lt, lte) but not both at the
+          // same time.
+          // You also need to define at least one of (gt, gte, lt, lte).
           {
-            "min": 0,
-            "max": 100,
-            "name": "0-100"
+            "gte": 0,
+            "lt": 100,
+            "output": "0-100"
           }
         ]
       }
