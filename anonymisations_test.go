@@ -38,7 +38,7 @@ func TestIdentity(t *testing.T) {
 	properties.Property("Same output as input", prop.ForAll(
 		func(v string) bool {
 			res, err := identity(v)
-			return assert.Nil(t, err) && assert.Equal(t, v, res)
+			return assert.NoError(t, err) && assert.Equal(t, v, res)
 		},
 		gen.AnyString(),
 	))
@@ -48,7 +48,7 @@ func TestIdentity(t *testing.T) {
 
 func TestHash(t *testing.T) {
 	res, err := hash("")
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "da39a3ee5e6b4b0d3255bfef95601890afd80709", res)
 	res, err = hash("hasselhoff")
 	assert.Equal(t, "ffe3294fad149c2dd3579cb864a1aebb2201f38d", res)
@@ -60,7 +60,7 @@ func TestOutcode(t *testing.T) {
 	properties.Property("Same output as input", prop.ForAll(
 		func(v1 string, v2 string) bool {
 			res, err := outcode(v1 + " " + v2)
-			return assert.Nil(t, err) && assert.Equal(t, v1, res)
+			return assert.NoError(t, err) && assert.Equal(t, v1, res)
 		},
 		gen.AlphaString(),
 		gen.AlphaString(),
@@ -73,7 +73,7 @@ func TestYear(t *testing.T) {
 	f := year("20060102")
 	t.Run("if the date can be parsed", func(t *testing.T) {
 		res, err := f("20120102")
-		assert.Nil(t, err, "should return no error")
+		assert.NoError(t, err, "should return no error")
 		assert.Equal(t, "2012", res, "should return the year")
 	})
 	t.Run("if the date cannot be parsed", func(t *testing.T) {
@@ -100,7 +100,7 @@ func TestRanges(t *testing.T) {
 		})
 		t.Run("inside a range", func(t *testing.T) {
 			res, err := f("10")
-			assert.Nil(t, err, "should return no error")
+			assert.NoError(t, err, "should return no error")
 			assert.Equal(t, output, res, "should return the output")
 		})
 	})

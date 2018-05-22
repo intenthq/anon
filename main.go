@@ -60,13 +60,13 @@ func sample(s string, conf SamplingConfig) bool {
 }
 
 func initReader(filename string, conf CsvConfig) *csv.Reader {
-	reader := csv.NewReader(fileOr(filename, os.Stdout, os.Open))
+	reader := csv.NewReader(fileOr(filename, os.Stdin, os.Open))
 	reader.Comma = []rune(conf.Delimiter)[0]
 	return reader
 }
 
 func initWriter(filename string, conf CsvConfig) *csv.Writer {
-	writer := csv.NewWriter(fileOr(filename, os.Stdin, os.Create))
+	writer := csv.NewWriter(fileOr(filename, os.Stdout, os.Create))
 	writer.Comma = []rune(conf.Delimiter)[0]
 	return writer
 }
