@@ -2,7 +2,10 @@
   <img src="icon.svg" width="300" />
 </p>
 
-# [![Build Status](https://travis-ci.org/intenthq/anon.svg?branch=master)](https://travis-ci.org/intenthq/anon) Anon — A UNIX Command To Anonymise Data
+# Anon — A UNIX Command To Anonymise Data
+[![Build Status](https://travis-ci.org/intenthq/anon.svg?branch=master)](https://travis-ci.org/intenthq/anon) <a href="https://codecov.io/gh/intenthq/anon">
+  <img src="https://codecov.io/gh/intenthq/anon/branch/master/graph/badge.svg" />
+</a> [![Go Report Card](https://goreportcard.com/badge/github.com/intenthq/anon)](https://goreportcard.com/report/github.com/intenthq/anon)
 
 Anon is a tool for taking delimited files and anonymising or transforming columns until the output is useful for applications where sensitive information cannot be exposed.
 
