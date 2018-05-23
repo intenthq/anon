@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math/rand"
 	"testing"
 
 	"github.com/leanovate/gopter"
@@ -10,12 +11,14 @@ import (
 )
 
 func TestAnonymisations(t *testing.T) {
+	salt := "jump"
 	conf := &[]ActionConfig{
 		ActionConfig{
 			Name: "nothing",
 		},
 		ActionConfig{
 			Name: "hash",
+			Salt: &salt,
 		},
 	}
 	// can't test that the functions are equal because of https://github.com/stretchr/testify/issues/182
@@ -26,10 +29,29 @@ func TestAnonymisations(t *testing.T) {
 	actualRes, actualErr := anons[0]("a")
 	assert.Equal(t, expectedRes, actualRes)
 	assert.Equal(t, expectedErr, actualErr)
-	expectedRes, expectedErr = hash("a")
+	expectedRes, expectedErr = hash("jump")("a")
 	actualRes, actualErr = anons[1]("a")
 	assert.Equal(t, expectedRes, actualRes)
 	assert.Equal(t, expectedErr, actualErr)
+}
+
+func TestActionConfig(t *testing.T) {
+	t.Run("saltOrRandom", func(t *testing.T) {
+		t.Run("if salt is not specified", func(t *testing.T) {
+			rand.Seed(1)
+			acNoSalt := ActionConfig{Name: "hash"}
+			assert.Equal(t, "5577006791947779410", acNoSalt.saltOrRandom(), "should return a random salt")
+		})
+		t.Run("if salt is specified", func(t *testing.T) {
+			emptySalt := ""
+			acEmptySalt := ActionConfig{Name: "hash", Salt: &emptySalt}
+			assert.Empty(t, acEmptySalt.saltOrRandom(), "should return the empty salt if empty")
+
+			salt := "jump"
+			acSalt := ActionConfig{Name: "hash", Salt: &salt}
+			assert.Equal(t, "jump", acSalt.saltOrRandom(), "should return the salt")
+		})
+	})
 }
 
 func TestIdentity(t *testing.T) {
@@ -47,11 +69,27 @@ func TestIdentity(t *testing.T) {
 }
 
 func TestHash(t *testing.T) {
-	res, err := hash("")
-	assert.NoError(t, err)
-	assert.Equal(t, "da39a3ee5e6b4b0d3255bfef95601890afd80709", res)
-	res, err = hash("hasselhoff")
-	assert.Equal(t, "ffe3294fad149c2dd3579cb864a1aebb2201f38d", res)
+	t.Run("should hash the values using sha1 without a salt", func(t *testing.T) {
+		unsaltedHash := hash("")
+		res, err := unsaltedHash("")
+		assert.NoError(t, err)
+		assert.Equal(t, "da39a3ee5e6b4b0d3255bfef95601890afd80709", res)
+		res, err = unsaltedHash("hasselhoff")
+		assert.Equal(t, "ffe3294fad149c2dd3579cb864a1aebb2201f38d", res)
+	})
+	t.Run("should use the salt if provided", func(t *testing.T) {
+		properties := gopter.NewProperties(nil)
+
+		properties.Property("hash(salt)(s) == hash(s+salt)", prop.ForAll(
+			func(salt string, s string) bool {
+				res1, err1 := hash(salt)(s)
+				res2, err2 := hash("")(s + salt)
+				return assert.NoError(t, err1) && assert.NoError(t, err2) && assert.Equal(t, res1, res2)
+			},
+			gen.AlphaString(),
+			gen.AlphaString(),
+		))
+	})
 }
 
 func TestOutcode(t *testing.T) {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -30,6 +31,7 @@ type RangeConfig struct {
 // ActionConfig stores the config of an anonymisation action
 type ActionConfig struct {
 	Name        string
+	Salt        *string
 	DateConfig  DateConfig
 	RangeConfig []RangeConfig
 }
@@ -43,6 +45,15 @@ func anonymisations(configs *[]ActionConfig) []Anonymisation {
 	return res
 }
 
+// Returns the configured salt or a random one
+// if it's not set.
+func (ac *ActionConfig) saltOrRandom() string {
+	if ac.Salt != nil {
+		return *ac.Salt
+	}
+	return strconv.Itoa(rand.Int())
+}
+
 func (ac *ActionConfig) create() Anonymisation {
 	switch ac.Name {
 	case "nothing":
@@ -50,7 +61,7 @@ func (ac *ActionConfig) create() Anonymisation {
 	case "outcode":
 		return outcode
 	case "hash":
-		return hash
+		return hash(ac.saltOrRandom())
 	case "year":
 		return year(ac.DateConfig.Format)
 	case "ranges":
@@ -65,10 +76,13 @@ func identity(s string) (string, error) {
 }
 
 // Hashes (SHA1) the input.
-func hash(s string) (string, error) {
-	h := sha1.New()
-	io.WriteString(h, s)
-	return fmt.Sprintf("%x", h.Sum(nil)), nil
+func hash(salt string) Anonymisation {
+	return func(s string) (string, error) {
+		h := sha1.New()
+		io.WriteString(h, s)
+		io.WriteString(h, salt)
+		return fmt.Sprintf("%x", h.Sum(nil)), nil
+	}
 }
 
 // Takes a UK format postcode (eg. W1W 8BE) and just keeps
