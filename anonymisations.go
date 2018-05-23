@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/sha1"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -52,6 +53,8 @@ func (ac *ActionConfig) create() Anonymisation {
 		return hash
 	case "year":
 		return year(ac.DateConfig.Format)
+	case "ranges":
+		return ranges(ac.RangeConfig)
 	}
 	return identity
 }
@@ -88,4 +91,27 @@ func year(format string) Anonymisation {
 		}
 		return strconv.Itoa(t.Year()), nil
 	}
+}
+
+// Given a list of ranges, it will summarise numeric
+// values into groups of values, each group defined
+// by a range and an output
+func ranges(ranges []RangeConfig) Anonymisation {
+	return func(s string) (string, error) {
+		v, err := strconv.ParseFloat(s, 64)
+		if err != nil {
+			return s, err
+		}
+		for _, rang := range ranges {
+			if rang.contains(v) {
+				return *rang.Output, nil
+			}
+		}
+		return s, errors.New("No range defined for value")
+	}
+}
+
+func (r *RangeConfig) contains(v float64) bool {
+	return (r.Gt == nil && r.Gte == nil || r.Gt != nil && *r.Gt < v || r.Gte != nil && *r.Gte <= v) &&
+		(r.Lt == nil && r.Lte == nil || r.Lt != nil && *r.Lt > v || r.Lte != nil && *r.Lte >= v)
 }

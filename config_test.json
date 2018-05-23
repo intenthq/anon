@@ -20,7 +20,7 @@
       }
     },
     {
-      "name": "range",
+      "name": "ranges",
       "rangeConfig": [
         {
           "gte": 0,

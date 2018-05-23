@@ -20,7 +20,7 @@ func TestLoadConfig(t *testing.T) {
 	})
 	t.Run("default config values", func(t *testing.T) {
 		conf, err := loadConfig("config_defaults_test.json")
-		require.Nil(t, err, "should return no error if the config can be loaded")
+		require.NoError(t, err, "should return no error if the config can be loaded")
 		assert.Equal(t, Config{
 			Csv: CsvConfig{
 				Delimiter: ",",
@@ -37,7 +37,7 @@ func TestLoadConfig(t *testing.T) {
 		lt := 100.0
 		output := "0-100"
 		conf, err := loadConfig("config_test.json")
-		require.Nil(t, err, "should return no error if the config can be loaded")
+		require.NoError(t, err, "should return no error if the config can be loaded")
 		assert.Equal(t, Config{
 			Csv: CsvConfig{
 				Delimiter: "|",
@@ -60,7 +60,7 @@ func TestLoadConfig(t *testing.T) {
 					},
 				},
 				ActionConfig{
-					Name: "range",
+					Name: "ranges",
 					RangeConfig: []RangeConfig{
 						RangeConfig{
 							Gte:    &gte,
