@@ -5,7 +5,8 @@
 # Anon — A UNIX Command To Anonymise Data
 [![Build Status](https://travis-ci.org/intenthq/anon.svg?branch=master)](https://travis-ci.org/intenthq/anon) <a href="https://codecov.io/gh/intenthq/anon">
   <img src="https://codecov.io/gh/intenthq/anon/branch/master/graph/badge.svg" />
-</a> [![Go Report Card](https://goreportcard.com/badge/github.com/intenthq/anon)](https://goreportcard.com/report/github.com/intenthq/anon)
+</a> [![Go Report Card](https://goreportcard.com/badge/github.com/intenthq/anon)](https://goreportcard.com/report/github.com/intenthq/anon) [![License](https://img.shields.io/npm/l/express.svg)](https://github.com/intenthq/anon/LICENSE)
+![GitHub release](https://img.shields.io/github/release/intenthq/anon.svg)
 
 Anon is a tool for taking delimited files and anonymising or transforming columns until the output is useful for applications where sensitive information cannot be exposed.
 
@@ -95,6 +96,20 @@ In order to be useful, Anon needs to be told what you want to do to each column 
   ]
 }
 ```
+
+## How to contribute
+
+Any contribution is welcome, raise a bug (and fix it! :-)) request or add a new feature... Don't be shy and raise a pull request, anything on the following topics will be very welcome:
+- New actions to anonymise data
+- New input formats (JSON?)
+- Bug fixes
+
+You can also take a look at the [issues](https://github.com/intenthq/anon/issues) and pick the one you like better.
+
+If you are going to contribute, we ask you to do the following:
+- Use `gofmt` to format your code
+- Check your code with `go vet`, `gocyclo`, `golint`
+- Cover the logic with enough tests
 
 # License
 
