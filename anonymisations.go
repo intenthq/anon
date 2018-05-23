@@ -37,12 +37,15 @@ type ActionConfig struct {
 }
 
 // Returns an array of anonymisations according to the config
-func anonymisations(configs *[]ActionConfig) []Anonymisation {
+func anonymisations(configs *[]ActionConfig) ([]Anonymisation, error) {
+	var err error
 	res := make([]Anonymisation, len(*configs))
 	for i, config := range *configs {
-		res[i] = config.create()
+		if res[i], err = config.create(); err != nil {
+			return nil, err
+		}
 	}
-	return res
+	return res, nil
 }
 
 // Returns the configured salt or a random one
@@ -54,20 +57,20 @@ func (ac *ActionConfig) saltOrRandom() string {
 	return strconv.Itoa(rand.Int())
 }
 
-func (ac *ActionConfig) create() Anonymisation {
+func (ac *ActionConfig) create() (Anonymisation, error) {
 	switch ac.Name {
 	case "nothing":
-		return identity
+		return identity, nil
 	case "outcode":
-		return outcode
+		return outcode, nil
 	case "hash":
-		return hash(ac.saltOrRandom())
+		return hash(ac.saltOrRandom()), nil
 	case "year":
 		return year(ac.DateConfig.Format)
 	case "ranges":
 		return ranges(ac.RangeConfig)
 	}
-	return identity
+	return nil, fmt.Errorf("can't create an action with name %s", ac.Name)
 }
 
 // The no-op, returns the input unchanged.
@@ -97,20 +100,32 @@ func outcode(s string) (string, error) {
 // If either the format is invalid or the year doesn't
 // match that format, it will return an error and
 // the input unchanged
-func year(format string) Anonymisation {
+func year(format string) (Anonymisation, error) {
+	if _, err := time.Parse(format, format); err != nil {
+		return nil, err
+	}
 	return func(s string) (string, error) {
 		t, err := time.Parse(format, s)
 		if err != nil {
 			return s, err
 		}
 		return strconv.Itoa(t.Year()), nil
-	}
+	}, nil
 }
 
 // Given a list of ranges, it will summarise numeric
 // values into groups of values, each group defined
 // by a range and an output
-func ranges(ranges []RangeConfig) Anonymisation {
+func ranges(ranges []RangeConfig) (Anonymisation, error) {
+	for _, rc := range ranges {
+		if rc.Gt != nil && rc.Gte != nil || rc.Lt != nil && rc.Lte != nil {
+			return nil, errors.New("you can only specify one of (gt, gte) and (lt, lte)")
+		} else if rc.Gt == nil && rc.Gte == nil && rc.Lt == nil && rc.Lte == nil {
+			return nil, errors.New("you need to specify at least one of gt, gte, lt, lte")
+		} else if rc.Output == nil {
+			return nil, errors.New("you need to specify the output for a range")
+		}
+	}
 	return func(s string) (string, error) {
 		v, err := strconv.ParseFloat(s, 64)
 		if err != nil {
@@ -122,7 +137,7 @@ func ranges(ranges []RangeConfig) Anonymisation {
 			}
 		}
 		return s, errors.New("No range defined for value")
-	}
+	}, nil
 }
 
 func (r *RangeConfig) contains(v float64) bool {

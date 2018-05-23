@@ -8,48 +8,167 @@ import (
 	"github.com/leanovate/gopter/gen"
 	"github.com/leanovate/gopter/prop"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestAnonymisations(t *testing.T) {
-	salt := "jump"
-	conf := &[]ActionConfig{
-		ActionConfig{
-			Name: "nothing",
-		},
-		ActionConfig{
-			Name: "hash",
-			Salt: &salt,
-		},
-	}
-	// can't test that the functions are equal because of https://github.com/stretchr/testify/issues/182
-	// and https://github.com/stretchr/testify/issues/159#issuecomment-99557398
-	// will have to test that the functions return the same
-	anons := anonymisations(conf)
-	expectedRes, expectedErr := identity("a")
-	actualRes, actualErr := anons[0]("a")
-	assert.Equal(t, expectedRes, actualRes)
-	assert.Equal(t, expectedErr, actualErr)
-	expectedRes, expectedErr = hash("jump")("a")
-	actualRes, actualErr = anons[1]("a")
+var salt = "jump"
+
+const seed = int64(1)
+
+//this is the first random salt with the seed above
+const firstSalt = "5577006791947779410"
+
+// can't test that the functions are equal because of https://github.com/stretchr/testify/issues/182
+// and https://github.com/stretchr/testify/issues/159#issuecomment-99557398
+// will have to test that the functions return the same
+func assertAnonymisationFunction(t *testing.T, expected Anonymisation, actual Anonymisation, value string) {
+	require.NotNil(t, expected)
+	require.NotNil(t, actual)
+	expectedRes, expectedErr := expected(value)
+	actualRes, actualErr := actual(value)
 	assert.Equal(t, expectedRes, actualRes)
 	assert.Equal(t, expectedErr, actualErr)
 }
 
-func TestActionConfig(t *testing.T) {
-	t.Run("saltOrRandom", func(t *testing.T) {
-		t.Run("if salt is not specified", func(t *testing.T) {
-			rand.Seed(1)
-			acNoSalt := ActionConfig{Name: "hash"}
-			assert.Equal(t, "5577006791947779410", acNoSalt.saltOrRandom(), "should return a random salt")
-		})
-		t.Run("if salt is specified", func(t *testing.T) {
-			emptySalt := ""
-			acEmptySalt := ActionConfig{Name: "hash", Salt: &emptySalt}
-			assert.Empty(t, acEmptySalt.saltOrRandom(), "should return the empty salt if empty")
+func TestAnonymisations(t *testing.T) {
+	t.Run("a valid configuration", func(t *testing.T) {
+		conf := &[]ActionConfig{
+			ActionConfig{
+				Name: "nothing",
+			},
+			ActionConfig{
+				Name: "hash",
+				Salt: &salt,
+			},
+		}
+		anons, err := anonymisations(conf)
+		assert.NoError(t, err)
+		assertAnonymisationFunction(t, identity, anons[0], "a")
+		assertAnonymisationFunction(t, hash(salt), anons[1], "a")
+	})
+	t.Run("an invalid configuration", func(t *testing.T) {
+		conf := &[]ActionConfig{ActionConfig{Name: "year", DateConfig: DateConfig{Format: "3333"}}}
+		anons, err := anonymisations(conf)
+		assert.Error(t, err, "should return an error")
+		assert.Nil(t, anons)
+	})
+}
 
-			salt := "jump"
-			acSalt := ActionConfig{Name: "hash", Salt: &salt}
-			assert.Equal(t, "jump", acSalt.saltOrRandom(), "should return the salt")
+func TestActionConfigSaltOrRandom(t *testing.T) {
+	t.Run("if salt is not specified", func(t *testing.T) {
+		rand.Seed(seed)
+		acNoSalt := ActionConfig{Name: "hash"}
+		assert.Equal(t, firstSalt, acNoSalt.saltOrRandom(), "should return a random salt")
+	})
+	t.Run("if salt is specified", func(t *testing.T) {
+		emptySalt := ""
+		acEmptySalt := ActionConfig{Name: "hash", Salt: &emptySalt}
+		assert.Empty(t, acEmptySalt.saltOrRandom(), "should return the empty salt if empty")
+
+		acSalt := ActionConfig{Name: "hash", Salt: &salt}
+		assert.Equal(t, "jump", acSalt.saltOrRandom(), "should return the salt")
+	})
+}
+
+func TestActionConfigCreate(t *testing.T) {
+	t.Run("invalid name", func(t *testing.T) {
+		ac := ActionConfig{Name: "invalid name"}
+		res, err := ac.create()
+		assert.Error(t, err)
+		assert.Nil(t, res)
+	})
+	t.Run("identity", func(t *testing.T) {
+		ac := ActionConfig{Name: "nothing"}
+		res, err := ac.create()
+		assert.NoError(t, err)
+		assertAnonymisationFunction(t, identity, res, "a")
+	})
+	t.Run("outcode", func(t *testing.T) {
+		ac := ActionConfig{Name: "outcode"}
+		res, err := ac.create()
+		assert.NoError(t, err)
+		assertAnonymisationFunction(t, outcode, res, "a")
+	})
+	t.Run("hash", func(t *testing.T) {
+		t.Run("if salt is not specified uses a random salt", func(t *testing.T) {
+			rand.Seed(1)
+			ac := ActionConfig{Name: "hash"}
+			res, err := ac.create()
+			assert.NoError(t, err)
+			assertAnonymisationFunction(t, hash(firstSalt), res, "a")
+		})
+		t.Run("if salt is specified uses it", func(t *testing.T) {
+			ac := ActionConfig{Name: "hash", Salt: &salt}
+			res, err := ac.create()
+			assert.NoError(t, err)
+			assertAnonymisationFunction(t, hash(salt), res, "a")
+		})
+	})
+	t.Run("year", func(t *testing.T) {
+		t.Run("with an invalid format", func(t *testing.T) {
+			ac := ActionConfig{Name: "year", DateConfig: DateConfig{Format: "11112233"}}
+			res, err := ac.create()
+			assert.Error(t, err, "should fail")
+			assert.Nil(t, res)
+		})
+		t.Run("with a valid format", func(t *testing.T) {
+			ac := ActionConfig{Name: "year", DateConfig: DateConfig{Format: "20060102"}}
+			res, err := ac.create()
+			assert.NoError(t, err, "should not fail")
+			y, err := year("20060102")
+			assert.NoError(t, err)
+			assertAnonymisationFunction(t, y, res, "21121212")
+		})
+	})
+	t.Run("ranges", func(t *testing.T) {
+		num := 2.0
+		output := "0-100"
+		t.Run("range has at least one of lt, lte, gt, gte", func(t *testing.T) {
+			ac := ActionConfig{
+				Name:        "ranges",
+				RangeConfig: []RangeConfig{RangeConfig{Output: &output}},
+			}
+			r, err := ac.create()
+			assert.Error(t, err, "if not should return an error")
+			assert.Nil(t, r)
+		})
+		t.Run("range contains both lt and lte", func(t *testing.T) {
+			ac := ActionConfig{
+				Name:        "ranges",
+				RangeConfig: []RangeConfig{RangeConfig{Lt: &num, Lte: &num, Output: &output}},
+			}
+			r, err := ac.create()
+			assert.Error(t, err, "if not should return an error")
+			assert.Nil(t, r)
+		})
+		t.Run("range contains both gt and gte", func(t *testing.T) {
+			ac := ActionConfig{
+				Name:        "ranges",
+				RangeConfig: []RangeConfig{RangeConfig{Gt: &num, Gte: &num, Output: &output}},
+			}
+			r, err := ac.create()
+			assert.Error(t, err, "if not should return an error")
+			assert.Nil(t, r)
+		})
+		t.Run("range without output defined", func(t *testing.T) {
+			ac := ActionConfig{
+				Name:        "ranges",
+				RangeConfig: []RangeConfig{RangeConfig{Lt: &num, Gte: &num}},
+			}
+			r, err := ac.create()
+			assert.Error(t, err, "if not should return an error")
+			assert.Nil(t, r)
+		})
+		t.Run("valid range", func(t *testing.T) {
+			rangeConfigs := []RangeConfig{RangeConfig{Lte: &num, Gte: &num, Output: &output}}
+			ac := ActionConfig{
+				Name:        "ranges",
+				RangeConfig: rangeConfigs,
+			}
+			r, err := ac.create()
+			expected, _ := ranges(rangeConfigs)
+			assert.NoError(t, err)
+			assertAnonymisationFunction(t, expected, r, "2")
 		})
 	})
 }
@@ -108,7 +227,7 @@ func TestOutcode(t *testing.T) {
 }
 
 func TestYear(t *testing.T) {
-	f := year("20060102")
+	f, _ := year("20060102")
 	t.Run("if the date can be parsed", func(t *testing.T) {
 		res, err := f("20120102")
 		assert.NoError(t, err, "should return no error")
@@ -124,7 +243,7 @@ func TestRanges(t *testing.T) {
 	min := 0.0
 	max := 100.0
 	output := "0-100"
-	f := ranges([]RangeConfig{RangeConfig{Gt: &min, Lte: &max, Output: &output}})
+	f, _ := ranges([]RangeConfig{RangeConfig{Gt: &min, Lte: &max, Output: &output}})
 	t.Run("if the value is not a float", func(t *testing.T) {
 		res, err := f("input")
 		assert.Error(t, err, "should return an error")

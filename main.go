@@ -6,10 +6,13 @@ import (
 	"hash/fnv"
 	"io"
 	"log"
+	"math/rand"
 	"os"
+	"time"
 )
 
 func main() {
+	rand.Seed(time.Now().UTC().UnixNano())
 	//TODO move args parsing to a function
 	configFile := flag.String("config", "config.json", "Configuration of the data to be anonymised. Default is 'config.json'")
 	outputFile := flag.String("output", "", "Output file. Default is stdout.")
@@ -18,12 +21,13 @@ func main() {
 	conf, err := loadConfig(*configFile)
 	if err != nil {
 		log.Fatal(err)
-	} else if err = conf.validate(); err != nil {
-		log.Fatal(err)
 	}
 	r := initReader(flag.Arg(0), conf.Csv)
 	w := initWriter(*outputFile, conf.Csv)
-	anons := anonymisations(&conf.Actions)
+	anons, err := anonymisations(&conf.Actions)
+	if err != nil {
+		log.Fatal(err)
+	}
 	i := 0
 
 	for {

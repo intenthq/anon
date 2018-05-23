@@ -65,7 +65,10 @@ In order to be useful, Anon needs to be told what you want to do to each column 
     },
     {
       // Hash (SHA1) the input.
-      "name": "hash"
+      "name": "hash",
+      // Optional salt that will be appened to the input.
+      // If not defined, a random salt will be generated
+      "salt": "salt"
     },
     {
       // Given a date, just keep the year.

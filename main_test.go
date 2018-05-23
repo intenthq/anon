@@ -86,7 +86,7 @@ func stdOutOk(s string) (*os.File, error) {
 
 func TestAnonymise(t *testing.T) {
 	record := []string{"a", "b", "c"}
-	actions := []Anonymisation{identity, hash, identity}
+	actions := []Anonymisation{identity, hash(""), identity}
 	output := []string{"a", "e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98", "c"}
 	res, err := anonymise(record, actions)
 	assert.NoError(t, err)
