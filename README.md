@@ -33,12 +33,16 @@ In order to be useful, Anon needs to be told what you want to do to each column 
 ```json5
 {
   "csv": {
-    "delimiter": ",",
-    "quote": "\""
+    "delimiter": ","
   },
   // Optionally define a number of rows to randomly sample down to.
+  // To do it, it will hash (using FNV-1 32 bits) the column with the ID
+  // in it and will mod the result by the value specified to decide if the
+  // row is included or not -> include = hash(idColumn) % mod == 0
   "sampling": {
-    "num": 30000
+    // Number used to mod the hash of the id and determine if the row
+    // has to be included in the sample or not
+    "mod": 30000
     // Specify in which a column a unique ID exists on which the sampling can
     // be performed. Indices are 0 based, so this would sample on the first
     // column.
