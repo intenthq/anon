@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bytes"
+	"encoding/csv"
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -99,4 +102,56 @@ func TestSample(t *testing.T) {
 	}
 	assert.True(t, sample("a", conf))
 	assert.False(t, sample("b", conf))
+}
+
+func TestProcess(t *testing.T) {
+	config := func(mod uint32, idColumn uint32) *Config {
+		return &Config{Sampling: SamplingConfig{Mod: mod, IDColumn: idColumn}}
+	}
+	anons := &[]Anonymisation{identity, outcode}
+	createReaderAndWriter := func(in string) (*csv.Reader, *csv.Writer, *bytes.Buffer) {
+		var out bytes.Buffer
+		r := csv.NewReader(strings.NewReader(in))
+
+		w := csv.NewWriter(&out)
+		return r, w, &out
+	}
+	t.Run("when the id column is out of range", func(t *testing.T) {
+		r, w, out := createReaderAndWriter("a,b c\nd,e f\n")
+
+		err := process(r, w, config(1, 100), anons)
+		assert.Error(t, err, "should return an error")
+		assert.Equal(t, "", out.String(), "shouldn't write any output")
+	})
+	t.Run("when there is an error writing the output", func(t *testing.T) {
+		var out bytes.Buffer
+		f, _ := os.Open("non existing file")
+		r := csv.NewReader(f)
+
+		w := csv.NewWriter(&out)
+		err := process(r, w, config(1, 0), anons)
+		assert.Error(t, err, "should return an error")
+	})
+	t.Run("when there is an error processing one of the rows", func(t *testing.T) {
+		r, w, out := createReaderAndWriter("20020202\nfail\n10010101")
+
+		y, _ := year("20060102")
+		err := process(r, w, config(1, 0), &[]Anonymisation{y})
+		assert.NoError(t, err, "should not return an error")
+		assert.Equal(t, "2002\n1001\n", out.String(), "should skip that row")
+	})
+	t.Run("when sampling is defined", func(t *testing.T) {
+		r, w, out := createReaderAndWriter("a,b c\nd,e f\ng,h i\nj,k l\n")
+
+		err := process(r, w, config(2, 0), anons)
+		assert.NoError(t, err, "should return no error")
+		assert.Equal(t, "a,b\ng,h\n", out.String(), "should process some rows")
+	})
+	t.Run("when all the rows are valid", func(t *testing.T) {
+		r, w, out := createReaderAndWriter("a,b c\nd,e f\n")
+
+		err := process(r, w, config(1, 0), anons)
+		assert.NoError(t, err, "should return no error")
+		assert.Equal(t, "a,b\nd,e\n", out.String(), "should process all rows")
+	})
 }

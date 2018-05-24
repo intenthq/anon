@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/csv"
 	"flag"
+	"fmt"
 	"hash/fnv"
 	"io"
 	"log"
@@ -28,6 +29,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	if err := process(r, w, conf, &anons); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func process(r *csv.Reader, w *csv.Writer, conf *Config, anons *[]Anonymisation) error {
 	i := 0
 
 	for {
@@ -38,9 +46,11 @@ func main() {
 			// we just print the error and skip the record
 			log.Print(err)
 		} else if err != nil {
-			log.Fatal(err)
+			return err
+		} else if int64(conf.Sampling.IDColumn) >= int64(len(record)) {
+			return fmt.Errorf("id column (%d) out of range, record has %d columns", conf.Sampling.IDColumn, len(record))
 		} else if sample(record[conf.Sampling.IDColumn], conf.Sampling) {
-			anonymised, err := anonymise(record, anons)
+			anonymised, err := anonymise(record, *anons)
 			if err != nil {
 				// we just print the error and skip the record
 				log.Print(err)
@@ -55,6 +65,7 @@ func main() {
 		i++
 	}
 	w.Flush()
+	return nil
 }
 
 func sample(s string, conf SamplingConfig) bool {
