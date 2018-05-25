@@ -1,6 +1,6 @@
 # Contributing to Anon
 
-## Code of Conduct
+## Code of Conduct
 
 This project and everyone participating in it is governed by the [Anon Code of Conduct](CODE_OF_CONDUCT.md).
 By participating, you are expected to uphold this code.
