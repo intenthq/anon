@@ -22,12 +22,8 @@ func TestLoadConfig(t *testing.T) {
 		conf, err := loadConfig("config_defaults_test.json")
 		require.NoError(t, err, "should return no error if the config can be loaded")
 		assert.Equal(t, Config{
-			Csv: CsvConfig{
-				Delimiter: ",",
-			},
 			Sampling: SamplingConfig{
-				Mod:      1,
-				IDColumn: 0,
+				Mod: 1,
 			},
 			Actions: []ActionConfig{},
 		}, *conf, "should fill the config with the default values")
@@ -39,12 +35,12 @@ func TestLoadConfig(t *testing.T) {
 		conf, err := loadConfig("config_test.json")
 		require.NoError(t, err, "should return no error if the config can be loaded")
 		assert.Equal(t, Config{
-			Csv: CsvConfig{
+			Csv: &CsvConfig{
 				Delimiter: "|",
+				IDColumn:  84,
 			},
 			Sampling: SamplingConfig{
-				Mod:      77,
-				IDColumn: 84,
+				Mod: 77,
 			},
 			Actions: []ActionConfig{
 				ActionConfig{

@@ -32,6 +32,7 @@ type RangeConfig struct {
 type ActionConfig struct {
 	Name        string
 	Salt        *string
+	JsonField   *string
 	DateConfig  DateConfig
 	RangeConfig []RangeConfig
 }
@@ -42,6 +43,21 @@ func anonymisations(configs *[]ActionConfig) ([]Anonymisation, error) {
 	res := make([]Anonymisation, len(*configs))
 	for i, config := range *configs {
 		if res[i], err = config.create(); err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+// Returns a map of anonymisations according to the config, indexed by JsonField
+func anonymisationsMap(configs *[]ActionConfig) (map[string]Anonymisation, error) {
+	var err error
+	res := make(map[string]Anonymisation)
+	for _, config := range *configs {
+		if config.JsonField == nil {
+			return nil, errors.New("You need to define a JsonField for each action configured.")
+		}
+		if res[*config.JsonField], err = config.create(); err != nil {
 			return nil, err
 		}
 	}

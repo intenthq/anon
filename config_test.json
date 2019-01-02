@@ -1,10 +1,10 @@
 {
   "csv": {
-    "delimiter": "|"
+    "delimiter": "|",
+    "idColumn": 84
   },
   "sampling": {
-    "mod": 77,
-    "idColumn": 84
+    "mod": 77
   },
   "actions": [
     {

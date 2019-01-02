@@ -32,23 +32,74 @@ func assertAnonymisationFunction(t *testing.T, expected Anonymisation, actual An
 
 func TestAnonymisations(t *testing.T) {
 	t.Run("a valid configuration", func(t *testing.T) {
+		f1, f2 := "f1", "f2"
 		conf := &[]ActionConfig{
 			ActionConfig{
-				Name: "nothing",
+				Name:      "nothing",
+				JsonField: &f1,
 			},
 			ActionConfig{
-				Name: "hash",
-				Salt: &salt,
+				Name:      "hash",
+				Salt:      &salt,
+				JsonField: &f2,
 			},
 		}
-		anons, err := anonymisations(conf)
-		assert.NoError(t, err)
-		assertAnonymisationFunction(t, identity, anons[0], "a")
-		assertAnonymisationFunction(t, hash(salt), anons[1], "a")
+		t.Run("anonymisations should return an array with each anonymisation created", func(t *testing.T) {
+			anons, err := anonymisations(conf)
+			assert.NoError(t, err)
+			assertAnonymisationFunction(t, identity, anons[0], "a")
+			assertAnonymisationFunction(t, hash(salt), anons[1], "a")
+		})
+		t.Run("anonymisationsMap should return a map with each anonymisation created and indexed by field", func(t *testing.T) {
+			anons, err := anonymisationsMap(conf)
+			assert.NoError(t, err)
+			assertAnonymisationFunction(t, identity, anons[f1], "a")
+			assertAnonymisationFunction(t, hash(salt), anons[f2], "a")
+		})
 	})
 	t.Run("an invalid configuration", func(t *testing.T) {
 		conf := &[]ActionConfig{ActionConfig{Name: "year", DateConfig: DateConfig{Format: "3333"}}}
-		anons, err := anonymisations(conf)
+		t.Run("anonymisations should return an error", func(t *testing.T) {
+			anons, err := anonymisations(conf)
+			assert.Error(t, err, "should return an error")
+			assert.Nil(t, anons)
+		})
+		t.Run("anonymisationsMap should return an error", func(t *testing.T) {
+			anons, err := anonymisationsMap(conf)
+			assert.Error(t, err, "should return an error")
+			assert.Nil(t, anons)
+		})
+	})
+}
+
+func TestAnonymisationsMap(t *testing.T) {
+	var f1, f2 = "f1", "f2"
+	t.Run("a valid configuration", func(t *testing.T) {
+		conf := &[]ActionConfig{
+			ActionConfig{
+				JsonField: &f1,
+				Name:      "nothing",
+			},
+			ActionConfig{
+				JsonField: &f2,
+				Name:      "hash",
+				Salt:      &salt,
+			},
+		}
+		anons, err := anonymisationsMap(conf)
+		assert.NoError(t, err)
+		assertAnonymisationFunction(t, identity, anons[f1], "a")
+		assertAnonymisationFunction(t, hash(salt), anons[f2], "a")
+	})
+	t.Run("an action configuration without JsonField defined", func(t *testing.T) {
+		conf := &[]ActionConfig{ActionConfig{Name: "year"}}
+		anons, err := anonymisationsMap(conf)
+		assert.Error(t, err, "should return an error")
+		assert.Nil(t, anons)
+	})
+	t.Run("an invalid action configuration", func(t *testing.T) {
+		conf := &[]ActionConfig{ActionConfig{JsonField: &f1, Name: "year", DateConfig: DateConfig{Format: "3333"}}}
+		anons, err := anonymisationsMap(conf)
 		assert.Error(t, err, "should return an error")
 		assert.Nil(t, anons)
 	})

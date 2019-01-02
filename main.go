@@ -1,11 +1,8 @@
 package main
 
 import (
-	"encoding/csv"
 	"flag"
-	"fmt"
 	"hash/fnv"
-	"io"
 	"log"
 	"math/rand"
 	"os"
@@ -23,67 +20,27 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	r := initReader(flag.Arg(0), conf.Csv)
-	w := initWriter(*outputFile, conf.Csv)
-	anons, err := anonymisations(&conf.Actions)
-	if err != nil {
-		log.Fatal(err)
-	}
 
-	if err := process(r, w, conf, &anons); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func process(r *csv.Reader, w *csv.Writer, conf *Config, anons *[]Anonymisation) error {
-	i := 0
-
-	for {
-		record, err := r.Read()
-		if err == io.EOF {
-			break
-		} else if pe, ok := err.(*csv.ParseError); ok && pe.Err == csv.ErrFieldCount {
-			// we just print the error and skip the record
-			log.Print(err)
-		} else if err != nil {
-			return err
-		} else if int64(conf.Sampling.IDColumn) >= int64(len(record)) {
-			return fmt.Errorf("id column (%d) out of range, record has %d columns", conf.Sampling.IDColumn, len(record))
-		} else if sample(record[conf.Sampling.IDColumn], conf.Sampling) {
-			anonymised, err := anonymise(record, *anons)
-			if err != nil {
-				// we just print the error and skip the record
-				log.Print(err)
-			} else {
-				w.Write(anonymised)
-			}
-			//TODO decide how often do we want to flush
-			if i%100 == 0 {
-				w.Flush()
-			}
+	if conf.Json != nil && conf.Csv != nil {
+		log.Fatal("Need to specify only one of Json or Csv.")
+	} else if &conf.Json != nil {
+		if err := processJson(flag.Arg(0), *outputFile, conf); err != nil {
+			log.Fatal(err)
 		}
-		i++
+	} else if &conf.Csv != nil {
+		if err := processCsv(flag.Arg(0), *outputFile, conf); err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		log.Fatal("Need to specify at least one of Json or Csv.")
 	}
-	w.Flush()
-	return nil
+
 }
 
 func sample(s string, conf SamplingConfig) bool {
 	h := fnv.New32a()
 	h.Write([]byte(s))
 	return h.Sum32()%conf.Mod == 0
-}
-
-func initReader(filename string, conf CsvConfig) *csv.Reader {
-	reader := csv.NewReader(fileOr(filename, os.Stdin, os.Open))
-	reader.Comma = []rune(conf.Delimiter)[0]
-	return reader
-}
-
-func initWriter(filename string, conf CsvConfig) *csv.Writer {
-	writer := csv.NewWriter(fileOr(filename, os.Stdout, os.Create))
-	writer.Comma = []rune(conf.Delimiter)[0]
-	return writer
 }
 
 // If filename is empty, will return `def`, if it's not, will return the

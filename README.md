@@ -8,7 +8,7 @@
 </a> [![Go Report Card](https://goreportcard.com/badge/github.com/intenthq/anon)](https://goreportcard.com/report/github.com/intenthq/anon) [![License](https://img.shields.io/npm/l/express.svg)](https://github.com/intenthq/anon/LICENSE)
 ![GitHub release](https://img.shields.io/github/release/intenthq/anon.svg)
 
-Anon is a tool for taking delimited files and anonymising or transforming columns until the output is useful for applications where sensitive information cannot be exposed.
+Anon is a tool for taking delimited files and anonymising or transforming columns/fields until the output is useful for applications where sensitive information cannot be exposed. Currently this tools supports both CSV and JSON files (with one level of depth).
 
 ## Installation
 
@@ -24,17 +24,20 @@ anon [--config <path to config file, default is ./config.json>]
 Anon is designed to take input from `STDIN` and by default will output the anonymised file to `STDOUT`:
 
 ```sh
-anon < some_file.csv > some_file_anonymised.csv
+anon < some_file > some_file_anonymised
 ```
 
 ### Configuration
 
-In order to be useful, Anon needs to be told what you want to do to each column of the CSV. The config is defined as a JSON file (defaults to a file called `config.json` in the current directory):
+In order to be useful, Anon needs to be told what you want to do to each column/field of the input. The config is defined as a JSON file (defaults to a file called `config.json` in the current directory):
 
 ```json5
 {
-  "csv": {
-    "delimiter": ","
+  // Name of the format of the input file
+  // Currently supports "csv" and "json"
+  "formatName": {
+    // Options for the format you have picked go here.
+    // See the documentation for the format you choose below.
   },
   // Optionally define a number of rows to randomly sample down to.
   // To do it, it will hash (using FNV-1 32 bits) the column with the ID
@@ -44,15 +47,14 @@ In order to be useful, Anon needs to be told what you want to do to each column 
     // Number used to mod the hash of the id and determine if the row
     // has to be included in the sample or not
     "mod": 30000
-    // Specify in which a column a unique ID exists on which the sampling can
-    // be performed. Indices are 0 based, so this would sample on the first
-    // column.
-    "idColumn": 0
   },
   // An array of actions to take on each column - indices are 0 based, so index
   // 0 in this array corresponds to column 1, and so on.
   //
-  // There must be an action for every column in the CSV.
+  // If anonymising a CSV, there must be an action for every column in it.
+  // If anonymising a JSON, there must be an action for each field that needs to
+  // be anonymised. If there is no action defined for a specific field, this
+  // field value will be left untouched.
   "actions": [
     {
       // The no-op, leaves the input unchanged.
@@ -61,7 +63,10 @@ In order to be useful, Anon needs to be told what you want to do to each column 
     {
       // Takes a UK format postcode (eg. W1W 8BE) and just keeps the outcode
       // (eg. W1W).
-      "name": "outcode"
+      "name": "outcode",
+      // what field in the json this action needs to be applied. If a field in
+      // the json doesn't have an action defined, then it will be left untouched.
+      "jsonField": "postcode"
     },
     {
       // Hash (SHA1) the input.
@@ -97,6 +102,36 @@ In order to be useful, Anon needs to be told what you want to do to each column 
       }
     }
   ]
+}
+```
+
+## Formats
+
+You can use CSV or JSON files as input.
+
+### CSV
+
+For a CSV file you will need a config like this:
+
+```json5
+"csv": {
+  "delimiter": ",",
+  // Specify in which column a unique ID exists on which the sampling can
+  // be performed. Indices are 0 based, so this would sample on the first
+  // column.
+  "idColumn": "0"
+}
+```
+
+### JSON
+
+For a JSON file you will need to define config like this: 
+
+```json5
+"json": {
+  // Specify in which field a unique ID exists on which the sampling can
+  // be performed.
+  "idField": "id"
 }
 ```
 

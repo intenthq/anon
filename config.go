@@ -8,28 +8,29 @@ import (
 // CsvConfig stores the config to read and write the csv file
 type CsvConfig struct {
 	Delimiter string
+	IDColumn  uint32
+}
+
+// JsonConfig stores the config to read and write the json file
+type JsonConfig struct {
+	IDField string
 }
 
 // SamplingConfig stores the config to know how to sample the file
 type SamplingConfig struct {
-	Mod      uint32
-	IDColumn uint32
+	Mod uint32
 }
 
 // Config stores all the configuration
 type Config struct {
-	Csv      CsvConfig
+	Csv      *CsvConfig
+	Json     *JsonConfig
 	Sampling SamplingConfig
 	Actions  []ActionConfig
 }
 
-var defaultCsvConfig = CsvConfig{
-	Delimiter: ",",
-}
-
 var defaultSamplingConfig = SamplingConfig{
-	Mod:      1,
-	IDColumn: 0,
+	Mod: 1,
 }
 
 var defaultActionsConfig = []ActionConfig{}
@@ -42,7 +43,6 @@ func loadConfig(filename string) (*Config, error) {
 	}
 	decoder := json.NewDecoder(file)
 	conf := Config{
-		Csv:      defaultCsvConfig,
 		Sampling: defaultSamplingConfig,
 		Actions:  defaultActionsConfig,
 	}
